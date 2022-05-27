@@ -105,9 +105,83 @@ void test_cube() {
         rotated_points[i] = point;
     }
 
-    for (int i = 0; i < 128; i++) {
-        for (int j = 0; j < 64; j++) {
-            draw_pixel(i, j, 0);
+    return i;
+}
+
+void rotate_point(float *x, float *y, float *z, float ax, float ay, float az) {
+    float rotatedX, rotatedY, rotatedZ;
+
+    // x axis
+    rotatedX = *x;
+    rotatedY = (*y * cosf(ax) - *z * sinf(ax));
+    rotatedZ = (*y * (float)sinf(ax) + *z * (float)cosf(ax));
+    *x = rotatedX;
+    *y = rotatedY;
+    *z = rotatedZ;
+
+    // y axis
+    rotatedX = (*z * sinf(ay) + *x * cosf(ay));
+    rotatedY = *y;
+    rotatedZ = (*z * cosf(ay) - *x * sinf(ay));
+    *x = rotatedX;
+    *y = rotatedY;
+    *z = rotatedZ;
+
+    // z axis
+    rotatedX = (*x * cosf(az) - *y * sinf(az));
+    rotatedY = (*x * sinf(az) + *y * cosf(az));
+    rotatedZ = *z;
+    *x = rotatedX;
+    *y = rotatedY;
+    *z = rotatedZ;
+}
+
+void adjust_point(float x, float y, struct POINT *point) {
+    point->x = (int)(x * SCALE_X + TRANSLATE_X);
+    point->y = (int)(y * SCALE_Y + TRANSLATE_Y);
+}
+
+void draw_string(uint8_t x, uint8_t y, char *str, hid_device* handle) {
+    uint8_t buf[64];
+    memset(buf, 0, 64);
+    buf[0] = 0x04;
+    buf[1] = x;
+    buf[2] = y;
+
+    int i = 3;
+
+    while (*str) {
+        buf[i++] = *str;
+        str++;
+    }
+
+    buf[i] = '\0';
+
+    for (int i = 0; i<64; i++) {
+        printf("%d ", buf[i]);
+    }
+
+    hid_send_feature_report(handle, buf, sizeof(buf));
+}
+
+void draw_cube(hid_device* handle)
+{
+    int exit = 0;
+    int16_t previous_slider = 0;
+
+    while (!exit) {
+        int16_t slider = 0;
+        unsigned char buf[256];
+        buf[0] = 0x03; // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+
+        hid_get_feature_report(handle, buf, 3); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+
+        memcpy(&slider, &buf[0]+1, 2);
+        if (slider > 1500) {
+            slider = 1500;
+        }
+        if (abs(previous_slider - slider) <= 40) {
+            slider = previous_slider;
         }
     }
 
@@ -149,21 +223,21 @@ int main(int argc, char* argv[])
     return 0;
 #endif
 
-    // Инициализируем DLL
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ DLL
     WSADATA wsaData;
     WSAStartup( MAKEWORD(2, 2), &wsaData);
-    // Создаем сокет
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     SOCKET servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    // Привязываем сокет
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
     struct sockaddr_in sockAddr;
-    memset (& sockAddr, 0, sizeof (sockAddr)); // Каждый байт заполняется 0
-    sockAddr.sin_family = PF_INET; // Использовать IPv4-адрес
-    sockAddr.sin_addr.s_addr = inet_addr ("0.0.0.0"); // Определенный IP-адрес
-    sockAddr.sin_port = htons (502); // Порт
+    memset (& sockAddr, 0, sizeof (sockAddr)); // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ 0
+    sockAddr.sin_family = PF_INET; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ IPv4-пїЅпїЅпїЅпїЅпїЅ
+    sockAddr.sin_addr.s_addr = inet_addr ("0.0.0.0"); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ IP-пїЅпїЅпїЅпїЅпїЅ
+    sockAddr.sin_port = htons (502); // пїЅпїЅпїЅпїЅ
     bind(servSock, (SOCKADDR*)&sockAddr, sizeof(SOCKADDR));
-    // Входим в состояние мониторинга
+    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     listen(servSock, 20);
-    // Получение клиентского запроса
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     SOCKADDR clntAddr;
     int nSize;
     char *str = NULL;
@@ -171,7 +245,7 @@ int main(int argc, char* argv[])
     char *szBuffer[MAXBYTE] = {0};
     SOCKET clntSock;
 
-    // Структура modbus протокола
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ modbus пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     char packet_buff[8] = { 0x00, 0x00, // TransactionId - 2 bytes
                             0x00, 0x00, // Protocol - 2 bytes
                             0x00, 0x00, // MessageLength - 2 bytes
@@ -247,14 +321,14 @@ int main(int argc, char* argv[])
     res = hid_get_indexed_string(handle, 1, wstr, MAX_STR);
     printf("Indexed String 1: %ls\n", wstr);
 
-    // Очистка экрана
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
     for (int i = 0; i < 128; i++) {
         for (int j = 0; j < 64; j++) {
             draw_pixel(i, j, 0);
         }
     }
     update_screen(handle);
-    // рисование квадрата
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     /*
     for (int i = 0; i < 30; i++) {
     for (int j = 0; j < 30; j++) {
@@ -271,31 +345,31 @@ int main(int argc, char* argv[])
     {
         nSize = sizeof(SOCKADDR);
         clntSock = accept(servSock, (SOCKADDR*)&clntAddr, &nSize);
-        // Получение пакета от клиента
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         recv(clntSock, szBuffer, MAXBYTE, 0);
         char *buff = szBuffer;
-        char function_code = buff[7]; // Код функции
-        // Сообщение с кодом функции
+        char function_code = buff[7]; // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         printf("Request with code %d\n", function_code);
-        // Ответ сервера
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         char answer[50];
-        // Длина сообщения с ответом сервера
+        // пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         int message_length;
-        // Выполнение функций
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
         switch (function_code) {
             case 0x42:
-                // Вычисление длины ответа
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
                 full_answer_length = 31 * sizeof(char); // 8 + 22 + 1
-                // Выделение памяти под ответ
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
                 str = malloc(full_answer_length);
-                // Копирование структуры modbus
+                // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ modbus
                 memcpy(str, packet_buff, 8);
-                // Код функции
+                // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 str[7] = (char)0x42;
                 // message_length + 2 (unitId + function_code)
                 str[5] = (char)(22 + 1 + 2);
-                // Запись сообщения после структуры modbus
+                // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ modbus
                 strcpy(str + 8, "The server is running!");
                 break;
             case 0x43:
@@ -307,7 +381,7 @@ int main(int argc, char* argv[])
                 str[8] = buff[8];
                 str[9] = buff[9];
 
-                buf[0] = 0x02; // код функции
+                buf[0] = 0x02; // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
                 buf[1] = buf[3] = buf[5] = buff[8];
                 buf[2] = buf[4] = buf[6] = buff[9];
 
@@ -326,7 +400,7 @@ int main(int argc, char* argv[])
         }
 
         send(clntSock, str, full_answer_length, 0);
-        // Освобождение указателя
+        // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
         free(str);
         str = NULL;
         printf("Answer sent\n");
@@ -434,9 +508,9 @@ void draw_cube(hid_device* handle)
     while (!exit) {
         int16_t slider = 0;
         unsigned char buf[256];
-        buf[0] = 0x03; // код функции
+        buf[0] = 0x03; // пїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
-        hid_get_feature_report(handle, buf, 3); // значение резистора
+        hid_get_feature_report(handle, buf, 3); // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 
         memcpy(&slider, &buf[0]+1, 2);
         if (slider > 1500) {
