@@ -23,10 +23,10 @@
 
 #define SCALE_X 20
 #define SCALE_Y 20
-#define TRANSLATEX 64
-#define TRANSLATEY 32
+#define TRANSLATE_X 64
+#define TRANSLATE_Y 32
 
-uint8_t SCREEN_BUFFER[128 * 64 / 8];
+uint8_t SCREEN_BUFFER[SCREEN_WIDTH * SCREEN_HEIGHT / 8];
 
 void update_screen(hid_device* handle) {
     uint16_t size = 32;
@@ -143,8 +143,8 @@ void rotate_point(float *x, float *y, float *z, float ax, float ay, float az) {
 }
 
 void adjust_point(float x, float y, struct POINT *point) {
-    point->x = (int)(x * SCALE_X + TRANSLATEX);
-    point->y = (int)(y * SCALE_Y + TRANSLATEY);
+    point->x = (int)(x * SCALE_X + TRANSLATE_X);
+    point->y = (int)(y * SCALE_Y + TRANSLATE_Y);
 }
 
 void draw_string(uint8_t x, uint8_t y, char *str, hid_device* handle) {
@@ -180,7 +180,7 @@ void draw_cube(hid_device* handle)
         unsigned char buf[256];
         buf[0] = 0x03; // код функции
 
-        int res = hid_get_feature_report(handle, buf, 3);
+        hid_get_feature_report(handle, buf, 3); // значение резистора
 
         memcpy(&slider, &buf[0]+1, 2);
         if (slider > 1500) {
@@ -276,101 +276,101 @@ int main(int argc, char* argv[])
 
     if (hid_init())
         return -1;
-/*
-devs = hid_enumerate(0x0, 0x0);
-cur_dev = devs;
-while (cur_dev) {
-printf("Device Found\n type: %04hx %04hx\n path: %s\n serial_number: %ls", cur_dev->vendor_id, cur_dev->product_id, cur_dev->path, cur_dev->serial_number);
-printf("\n");
-printf(" Mandufacturer: %ls\n", cur_dev->manufacturer_string);
-printf(" Product: %ls\n", cur_dev->product_string);
-printf(" Release: %hx\n", cur_dev->release_number);
-printf(" Interface: %d\n", cur_dev->interface_number);
-printf(" Usage (page): 0x%hx (0x%hx)\n", cur_dev->usage, cur_dev->usage_page);
-printf("\n");
-cur_dev = cur_dev->next;
-}
-hid_free_enumeration(devs);
-*/
-// Set up the command buffer.
+    /*
+    devs = hid_enumerate(0x0, 0x0);
+    cur_dev = devs;
+    while (cur_dev) {
+    printf("Device Found\n type: %04hx %04hx\n path: %s\n serial_number: %ls", cur_dev->vendor_id, cur_dev->product_id, cur_dev->path, cur_dev->serial_number);
+    printf("\n");
+    printf(" Mandufacturer: %ls\n", cur_dev->manufacturer_string);
+    printf(" Product: %ls\n", cur_dev->product_string);
+    printf(" Release: %hx\n", cur_dev->release_number);
+    printf(" Interface: %d\n", cur_dev->interface_number);
+    printf(" Usage (page): 0x%hx (0x%hx)\n", cur_dev->usage, cur_dev->usage_page);
+    printf("\n");
+    cur_dev = cur_dev->next;
+    }
+    hid_free_enumeration(devs);
+    */
+    // Set up the command buffer.
     memset(buf,0x00,sizeof(buf));
     buf[0] = 0x01;
     buf[1] = 0x81;
 
-// Open the device using the VID, PID,
-// and optionally the Serial number.
+    // Open the device using the VID, PID,
+    // and optionally the Serial number.
     handle = hid_open(0x1234, 0x0001, NULL);
     if (!handle) {
         printf("unable to open device\n");
         return 1;
     }
 
-// Read the Manufacturer String
+    // Read the Manufacturer String
     wstr[0] = 0x0000;
     res = hid_get_manufacturer_string(handle, wstr, MAX_STR);
     printf("Manufacturer String: %ls\n", wstr);
 
-// Read the Product String
+    // Read the Product String
     wstr[0] = 0x0000;
     res = hid_get_product_string(handle, wstr, MAX_STR);
     printf("Product String: %ls\n", wstr);
 
-// Read the Serial Number String
+    // Read the Serial Number String
     wstr[0] = 0x0000;
     res = hid_get_serial_number_string(handle, wstr, MAX_STR);
     printf("Serial Number String: (%d) %ls", wstr[0], wstr);
     printf("\n");
 
-// Read Indexed String 1
+    // Read Indexed String 1
     wstr[0] = 0x0000;
     res = hid_get_indexed_string(handle, 1, wstr, MAX_STR);
     printf("Indexed String 1: %ls\n", wstr);
 
-// Очистка экрана
+    // Очистка экрана
     for (int i = 0; i < 128; i++) {
         for (int j = 0; j < 64; j++) {
             draw_pixel(i, j, 0);
         }
     }
     update_screen(handle);
-// рисование квадрата
-/*
-for (int i = 0; i < 30; i++) {
-for (int j = 0; j < 30; j++) {
-buf[0] = 0x04;
-buf[1] = 15 + i; //
-buf[2] = 15 + j;
-buf[3] = 0x01;
-res = hid_send_feature_report(handle,buf,4);
-}
-}*/
-// keys
-// Read a Feature Report from the device
+    // рисование квадрата
+    /*
+    for (int i = 0; i < 30; i++) {
+    for (int j = 0; j < 30; j++) {
+    buf[0] = 0x04;
+    buf[1] = 15 + i; //
+    buf[2] = 15 + j;
+    buf[3] = 0x01;
+    res = hid_send_feature_report(handle,buf,4);
+    }
+    }*/
+    // keys
+    // Read a Feature Report from the device
     while(1)
     {
         nSize = sizeof(SOCKADDR);
         clntSock = accept(servSock, (SOCKADDR*)&clntAddr, &nSize);
-// Получение пакета от клиента
+        // Получение пакета от клиента
         recv(clntSock, szBuffer, MAXBYTE, 0);
         char *buff = szBuffer;
         char function_code = buff[7]; // Код функции
-// Сообщение с кодом функции
+        // Сообщение с кодом функции
         printf("Request with code %d\n", function_code);
-// Ответ сервера
+        // Ответ сервера
         char answer[50];
-// Длина сообщения с ответом сервера
+        // Длина сообщения с ответом сервера
         int message_length;
-// Выполнение функций
+        // Выполнение функций
 
         switch (function_code) {
             case 0x42:
-// Вычисление длины ответа
+                // Вычисление длины ответа
                 full_answer_length = 31 * sizeof(char); // 8 + 22 + 1
-// Выделение памяти под ответ
+                // Выделение памяти под ответ
                 str = malloc(full_answer_length);
-// Копирование структуры modbus
+                // Копирование структуры modbus
                 memcpy(str, packet_buff, 8);
-// Код функции
+                // Код функции
                 str[7] = (char)0x42;
                 // message_length + 2 (unitId + function_code)
                 str[5] = (char)(22 + 1 + 2);
