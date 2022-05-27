@@ -147,6 +147,29 @@ void adjust_point(float x, float y, struct POINT *point) {
     point->y = (int)(y * SCALE_Y + TRANSLATEY);
 }
 
+void draw_string(uint8_t x, uint8_t y, char *str, hid_device* handle) {
+    uint8_t buf[64];
+    memset(buf, 0, 64);
+    buf[0] = 0x04;
+    buf[1] = x;
+    buf[2] = y;
+
+    int i = 3;
+
+    while (*str) {
+        buf[i++] = *str;
+        str++;
+    }
+
+    buf[i] = '\0';
+
+    for (int i = 0; i<64; i++) {
+        printf("%d ", buf[i]);
+    }
+
+    hid_send_feature_report(handle, buf, sizeof(buf));
+}
+
 void draw_cube(hid_device* handle)
 {
     int exit = 0;
