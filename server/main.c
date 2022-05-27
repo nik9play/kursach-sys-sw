@@ -18,8 +18,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <time.h>
-
-#define GET_BIT(var, bit)   (((var) >> (bit)) & 1)
+#include "fonts.h"
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -43,6 +42,7 @@ int plot_triangle(int x0, int y0, int x1, int y1, int x2, int y2);
 void rotate_point(float *x, float *y, float *z, float ax, float ay, float az);
 void adjust_point(float x, float y, struct POINT *point);
 void draw_cube(hid_device* handle);
+void draw_string_to_buffer(int x, int y, char* str);
 
 float CUBE_CORNERS[8][3] = {
         {-1, -1, -1},
@@ -423,30 +423,70 @@ void draw_cube(hid_device* handle)
     int exit = 0;
     int16_t previous_slider = 0;
 
+    int top_text_x = 0;
+    int top_text_direction = 1;
+
+    int bottom_text_x = 0;
+    int bottom_text_direction = 1;
+    int axis = 0;
+    float ax = 0.3f, ay = 0.3f, az = 0.3f;
+
+
+
     while (!exit) {
         int16_t slider = 0;
         unsigned char buf[256];
-        buf[0] = 0x03; // ??? ???????
+        buf[0] = 0x03;
 
-        hid_get_feature_report(handle, buf, 3); // ???????? ?????????
+        hid_get_feature_report(handle, buf, 3);
 
         memcpy(&slider, &buf[0]+1, 2);
         if (slider > 1500) {
             slider = 1500;
         }
-        if (abs(previous_slider - slider) <= 40) {
+        if (abs(previous_slider - slider) <= 30) {
             slider = previous_slider;
         }
 
-        float ay = (((float)slider - 0) / (2000 - 0)) * (M_PI);
+        float rotate = (((float)slider - 0) / (1500 - 0)) * (float)M_PI;
 
-        printf("%d %d %d %f\n", slider, buf[1], buf[2], ay);
+        buf[0] = 0x01;
+        hid_get_feature_report(handle, buf, 2);
+
+        switch (buf[1]) {
+            case 0x01:
+                axis = 0;
+                break;
+            case 0x02:
+                axis = 1;
+                break;
+            case 0x04:
+                axis = 2;
+                break;
+            case 0x08:
+                exit = 1;
+                continue;
+        }
+
+        switch(axis) {
+            case 0:
+                ax = rotate;
+                break;
+            case 1:
+                ay = rotate;
+                break;
+            case 2:
+                az = rotate;
+                break;
+        }
+
+        // printf("%d %d %d %f\n", slider, buf[1], buf[2], rotate);
 
         for (int i=0; i<8; i++) {
             float x = CUBE_CORNERS[i][0];
             float y = CUBE_CORNERS[i][1];
             float z = CUBE_CORNERS[i][2];
-            rotate_point(&x,&y,&z,0,ay,0);
+            rotate_point(&x,&y,&z,ax,ay,az);
 
             struct POINT point;
             adjust_point(x,y,&point);
@@ -471,9 +511,77 @@ void draw_cube(hid_device* handle)
                           rotated_points[TRIANGLE_INDEXES[i][2]].x, rotated_points[TRIANGLE_INDEXES[i][2]].y);
         }
 
-
-
         previous_slider = slider;
+
+        char string[32];
+        snprintf(string, 31, "ax: %.2f ay: %.2f az: %.2f", ax, ay, az);
+        draw_string_to_buffer(top_text_x, 0, string);
+
+        if (top_text_direction)
+            top_text_x -= 3;
+        else
+            top_text_x += 3;
+
+        if (top_text_x >= 2)
+            top_text_direction = 1;
+
+        if (top_text_x <= -56)
+            top_text_direction = 0;
+
+        draw_string_to_buffer(bottom_text_x, 56, "Button 1 - x axis, Button 2 - y axis, Button 3 - z axis, Button 4 - exit");
+
+        if (bottom_text_direction)
+            bottom_text_x -= 3;
+        else
+            bottom_text_x += 3;
+
+        if (bottom_text_x >= 2)
+            bottom_text_direction = 1;
+
+        if (bottom_text_x <= -384)
+            bottom_text_direction = 0;
+
+        printf("%d %d \n", bottom_text_x, bottom_text_direction);
+
         update_screen(handle);
+    }
+}
+
+void draw_string_to_buffer(int x, int y, char* str)
+{
+    uint32_t pixel;
+    int font_x, font_y;
+
+    while(*str)
+    {
+        // write char to display buffer
+        for (font_y = 0; font_y < Font_7x9.FontHeight; font_y++)
+        {
+            char ch = *str;
+
+            // get font pixel
+            if(ch < 127)
+                pixel = Font_7x9.fontEn[(ch - 32) * Font_7x9.FontHeight + font_y];
+            else
+                pixel = Font_7x9.fontRu[(ch - 192) * Font_7x9.FontHeight + font_y];
+            // write pixel to display buffer
+            font_x = Font_7x9.FontWidth;
+            while(font_x--)
+            {
+                if (pixel & 0x0001)
+                {
+                    draw_pixel(x + font_x, y + font_y, 1);
+                }
+                else
+                {
+                    draw_pixel(x + font_x, y + font_y, 0);
+                }
+                pixel >>= 1;
+            }
+        }
+
+        x += Font_7x9.FontWidth;
+
+        str++;
     }
 }

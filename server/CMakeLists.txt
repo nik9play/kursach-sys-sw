@@ -13,4 +13,4 @@ add_executable(hidwapi
         hidapi_hidclass.h
         hidapi_hidpi.h
         hidapi_hidsdi.h
-        main.c)
+        main.c fonts.c fonts.h)
