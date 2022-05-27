@@ -87,59 +87,10 @@ int TRIANGLE_INDEXES[12][3] = {
         {0, 1, 2},
 
         {2, 0, 4},
-        {6, 5, 0}
+        {4, 5, 0}
 };
 
 struct POINT rotated_points[8] = {};
-
-void test_cube() {
-    for (int i=0; i<8; i++) {
-        float x = CUBE_CORNERS[i][0];
-        float y = CUBE_CORNERS[i][1];
-        float z = CUBE_CORNERS[i][2];
-        rotate_point(&x,&y,&z,0.3f,0.3f,0.0f);
-
-        struct POINT point;
-        adjust_point(x,y,&point);
-
-        rotated_points[i] = point;
-    }
-
-    return i;
-}
-
-void rotate_point(float *x, float *y, float *z, float ax, float ay, float az) {
-    float rotatedX, rotatedY, rotatedZ;
-
-    // x axis
-    rotatedX = *x;
-    rotatedY = (*y * cosf(ax) - *z * sinf(ax));
-    rotatedZ = (*y * (float)sinf(ax) + *z * (float)cosf(ax));
-    *x = rotatedX;
-    *y = rotatedY;
-    *z = rotatedZ;
-
-    // y axis
-    rotatedX = (*z * sinf(ay) + *x * cosf(ay));
-    rotatedY = *y;
-    rotatedZ = (*z * cosf(ay) - *x * sinf(ay));
-    *x = rotatedX;
-    *y = rotatedY;
-    *z = rotatedZ;
-
-    // z axis
-    rotatedX = (*x * cosf(az) - *y * sinf(az));
-    rotatedY = (*x * sinf(az) + *y * cosf(az));
-    rotatedZ = *z;
-    *x = rotatedX;
-    *y = rotatedY;
-    *z = rotatedZ;
-}
-
-void adjust_point(float x, float y, struct POINT *point) {
-    point->x = (int)(x * SCALE_X + TRANSLATE_X);
-    point->y = (int)(y * SCALE_Y + TRANSLATE_Y);
-}
 
 void draw_string(uint8_t x, uint8_t y, char *str, hid_device* handle) {
     uint8_t buf[64];
@@ -162,39 +113,6 @@ void draw_string(uint8_t x, uint8_t y, char *str, hid_device* handle) {
     }
 
     hid_send_feature_report(handle, buf, sizeof(buf));
-}
-
-void draw_cube(hid_device* handle)
-{
-    int exit = 0;
-    int16_t previous_slider = 0;
-
-    while (!exit) {
-        int16_t slider = 0;
-        unsigned char buf[256];
-        buf[0] = 0x03; // ��� �������
-
-        hid_get_feature_report(handle, buf, 3); // �������� ���������
-
-        memcpy(&slider, &buf[0]+1, 2);
-        if (slider > 1500) {
-            slider = 1500;
-        }
-        if (abs(previous_slider - slider) <= 40) {
-            slider = previous_slider;
-        }
-    }
-
-    for (int i=0; i<12; i++) {
-//            struct POINT from = rotated_points[CORNER_INDEXES[i][0]];
-//            struct POINT to = rotated_points[CORNER_INDEXES[i][1]];
-//            //printf("from: %d %d==to: %d %d\n", from.x, from.y, to.x, to.y);
-//            plot_line(from.x, from.y, to.x, to.y);
-
-        plot_triangle(rotated_points[TRIANGLE_INDEXES[i][0]].x, rotated_points[TRIANGLE_INDEXES[i][0]].y,
-                      rotated_points[TRIANGLE_INDEXES[i][1]].x, rotated_points[TRIANGLE_INDEXES[i][1]].y,
-                      rotated_points[TRIANGLE_INDEXES[i][2]].x, rotated_points[TRIANGLE_INDEXES[i][2]].y);
-    }
 }
 
 int main(int argc, char* argv[])
@@ -223,21 +141,21 @@ int main(int argc, char* argv[])
     return 0;
 #endif
 
-    // �������������� DLL
+    // ?????????????? DLL
     WSADATA wsaData;
     WSAStartup( MAKEWORD(2, 2), &wsaData);
-    // ������� �����
+    // ??????? ?????
     SOCKET servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    // ����������� �����
+    // ??????????? ?????
     struct sockaddr_in sockAddr;
-    memset (& sockAddr, 0, sizeof (sockAddr)); // ������ ���� ����������� 0
-    sockAddr.sin_family = PF_INET; // ������������ IPv4-�����
-    sockAddr.sin_addr.s_addr = inet_addr ("0.0.0.0"); // ������������ IP-�����
-    sockAddr.sin_port = htons (502); // ����
+    memset (& sockAddr, 0, sizeof (sockAddr)); // ?????? ???? ??????????? 0
+    sockAddr.sin_family = PF_INET; // ???????????? IPv4-?????
+    sockAddr.sin_addr.s_addr = inet_addr ("0.0.0.0"); // ???????????? IP-?????
+    sockAddr.sin_port = htons (502); // ????
     bind(servSock, (SOCKADDR*)&sockAddr, sizeof(SOCKADDR));
-    // ������ � ��������� �����������
+    // ?????? ? ????????? ???????????
     listen(servSock, 20);
-    // ��������� ����������� �������
+    // ????????? ??????????? ???????
     SOCKADDR clntAddr;
     int nSize;
     char *str = NULL;
@@ -245,7 +163,7 @@ int main(int argc, char* argv[])
     char *szBuffer[MAXBYTE] = {0};
     SOCKET clntSock;
 
-    // ��������� modbus ���������
+    // ????????? modbus ?????????
     char packet_buff[8] = { 0x00, 0x00, // TransactionId - 2 bytes
                             0x00, 0x00, // Protocol - 2 bytes
                             0x00, 0x00, // MessageLength - 2 bytes
@@ -321,14 +239,14 @@ int main(int argc, char* argv[])
     res = hid_get_indexed_string(handle, 1, wstr, MAX_STR);
     printf("Indexed String 1: %ls\n", wstr);
 
-    // ������� ������
+    // ??????? ??????
     for (int i = 0; i < 128; i++) {
         for (int j = 0; j < 64; j++) {
             draw_pixel(i, j, 0);
         }
     }
     update_screen(handle);
-    // ��������� ��������
+    // ????????? ????????
     /*
     for (int i = 0; i < 30; i++) {
     for (int j = 0; j < 30; j++) {
@@ -345,31 +263,31 @@ int main(int argc, char* argv[])
     {
         nSize = sizeof(SOCKADDR);
         clntSock = accept(servSock, (SOCKADDR*)&clntAddr, &nSize);
-        // ��������� ������ �� �������
+        // ????????? ?????? ?? ???????
         recv(clntSock, szBuffer, MAXBYTE, 0);
         char *buff = szBuffer;
-        char function_code = buff[7]; // ��� �������
-        // ��������� � ����� �������
+        char function_code = buff[7]; // ??? ???????
+        // ????????? ? ????? ???????
         printf("Request with code %d\n", function_code);
-        // ����� �������
+        // ????? ???????
         char answer[50];
-        // ����� ��������� � ������� �������
+        // ????? ????????? ? ??????? ???????
         int message_length;
-        // ���������� �������
+        // ?????????? ???????
 
         switch (function_code) {
             case 0x42:
-                // ���������� ����� ������
+                // ?????????? ????? ??????
                 full_answer_length = 31 * sizeof(char); // 8 + 22 + 1
-                // ��������� ������ ��� �����
+                // ????????? ?????? ??? ?????
                 str = malloc(full_answer_length);
-                // ����������� ��������� modbus
+                // ??????????? ????????? modbus
                 memcpy(str, packet_buff, 8);
-                // ��� �������
+                // ??? ???????
                 str[7] = (char)0x42;
                 // message_length + 2 (unitId + function_code)
                 str[5] = (char)(22 + 1 + 2);
-                // ������ ��������� ����� ��������� modbus
+                // ?????? ????????? ????? ????????? modbus
                 strcpy(str + 8, "The server is running!");
                 break;
             case 0x43:
@@ -381,7 +299,7 @@ int main(int argc, char* argv[])
                 str[8] = buff[8];
                 str[9] = buff[9];
 
-                buf[0] = 0x02; // ��� �������
+                buf[0] = 0x02; // ??? ???????
                 buf[1] = buf[3] = buf[5] = buff[8];
                 buf[2] = buf[4] = buf[6] = buff[9];
 
@@ -400,7 +318,7 @@ int main(int argc, char* argv[])
         }
 
         send(clntSock, str, full_answer_length, 0);
-        // ������������ ���������
+        // ???????????? ?????????
         free(str);
         str = NULL;
         printf("Answer sent\n");
@@ -508,9 +426,9 @@ void draw_cube(hid_device* handle)
     while (!exit) {
         int16_t slider = 0;
         unsigned char buf[256];
-        buf[0] = 0x03; // ��� �������
+        buf[0] = 0x03; // ??? ???????
 
-        hid_get_feature_report(handle, buf, 3); // �������� ���������
+        hid_get_feature_report(handle, buf, 3); // ???????? ?????????
 
         memcpy(&slider, &buf[0]+1, 2);
         if (slider > 1500) {
@@ -528,7 +446,7 @@ void draw_cube(hid_device* handle)
             float x = CUBE_CORNERS[i][0];
             float y = CUBE_CORNERS[i][1];
             float z = CUBE_CORNERS[i][2];
-            rotate_point(&x,&y,&z,0.3f,ay,0.0f);
+            rotate_point(&x,&y,&z,0,ay,0);
 
             struct POINT point;
             adjust_point(x,y,&point);
