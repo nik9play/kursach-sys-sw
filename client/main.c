@@ -28,7 +28,7 @@ void client_menu() // Меню
 {
     int choice = -1;
     while (choice != 0) {
-        printf("\n1) Ping\n2) LED Brightness\n3) shutdown_function\n4) cube \n0) exit\n\n");
+        printf("\n1) Ping\n2) LED Brightness\n3) Shutdown server\n4) Cube \n0) exit\n\n");
         switch (choice = get_choice(4)) {
             case 1:
                 ping_function();
