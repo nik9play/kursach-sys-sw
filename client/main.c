@@ -84,7 +84,7 @@ void cube_function() {
 
 void led_function() {
 // считывание яркости
-    unsigned short brightness;
+    unsigned short brightness = 0;
     scanf("%u", &brightness);
 
     if (brightness > 1000)
@@ -118,7 +118,7 @@ void shutdown_function() {
 // Формирование пакета
     char *packet;
 // Длина всего пакета (modbus + message)
-    int packet_length = create_packet(0x44, password, strlen(password) + 1, &packet);
+    int packet_length = create_packet(0x45, password, strlen(password) + 1, &packet);
 // Отправка пакета
     send_packet(packet, packet_length);
 // Освобождение указателя

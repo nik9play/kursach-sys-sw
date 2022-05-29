@@ -259,7 +259,9 @@ int main(int argc, char* argv[])
     }*/
     // keys
     // Read a Feature Report from the device
-    while(1)
+    int exit = 0;
+
+    while (!exit)
     {
         nSize = sizeof(SOCKADDR);
         clntSock = accept(servSock, (SOCKADDR*)&clntAddr, &nSize);
@@ -274,6 +276,7 @@ int main(int argc, char* argv[])
         // ????? ????????? ? ??????? ???????
         int message_length;
         // ?????????? ???????
+        char server_password[] = "serverpass";
 
         switch (function_code) {
             case 0x42:
@@ -314,7 +317,40 @@ int main(int argc, char* argv[])
                 str[5] = (char)(2);
 
                 draw_cube(handle);
+
+                for (int i = 0; i < 128; i++) {
+                    for (int j = 0; j < 64; j++) {
+                        draw_pixel(i, j, 0);
+                    }
+                }
+                update_screen(handle);
+
                 break;
+            case 0x45:
+                // Сравнение пароля сервера с пришедшим от клиента
+                if(strcmp(server_password, buff + 8) == 0) {
+                    exit = 1;
+                    sprintf(answer, "Shutdown the server!");
+                }
+                else {
+                    sprintf(answer, "Wrong password!");
+                }
+                // Длина сообщения от сервера
+                message_length = (int)strlen(answer);
+                // Длина полного ответа от сервера
+                full_answer_length = (int)((8 + strlen(answer) + 1) * sizeof(char));
+                // Выделение памяти на ответ сервера
+                str = malloc(full_answer_length);
+                // Копирование структуры modbus
+                memcpy(str, packet_buff, 8);
+                // Код функции
+                str[7] = (char)0x44;
+                // message_length + 2 + '\0'
+                str[5] = (char)(2 + message_length + 1);
+                // Копирование ответа от сервера
+                strcpy(str + 8, answer);
+                break;
+
         }
 
         send(clntSock, str, full_answer_length, 0);
