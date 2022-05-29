@@ -60,7 +60,9 @@ int main(void)
     ssd1306_Init(hi2c1, 0x78);           // процедура настройки дисплей
     ssd1306_Fill(Black);               // очистка буфера дисплея
     ssd1306_SetCursor(5, 10);
-    ssd1306_WriteString("Plug device to PC!!!", Font_7x9, White);
+    ssd1306_WriteString("Plug device to PC", Font_7x9, White);
+		ssd1306_SetCursor(5, 20);
+		ssd1306_WriteString("Custom FW", Font_7x9, White);
     ssd1306_UpdateScreen();             // обновление экрана
   /* Infinite loop */
 	
