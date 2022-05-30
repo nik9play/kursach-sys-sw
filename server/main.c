@@ -55,21 +55,6 @@ float CUBE_CORNERS[8][3] = {
         { 1,  1,  1}
 };
 
-int CORNER_INDEXES[12][2] = {
-        {0,1},
-        {1,3},
-        {3,2},
-        {2,0},
-        {0,4},
-        {1,5},
-        {2,6},
-        {3,7},
-        {4,5},
-        {5,7},
-        {7,6},
-        {6,4}
-};
-
 int TRIANGLE_INDEXES[12][3] = {
         {0, 4, 5},
         {0, 1, 5},
@@ -81,7 +66,7 @@ int TRIANGLE_INDEXES[12][3] = {
         {2, 3, 7},
 
         {7, 5, 1},
-        {3, 1,  7},
+        {3, 1, 7},
 
         {2, 3, 1},
         {0, 1, 2},
@@ -92,55 +77,8 @@ int TRIANGLE_INDEXES[12][3] = {
 
 struct POINT rotated_points[8] = {};
 
-void draw_string(uint8_t x, uint8_t y, char *str, hid_device* handle) {
-    uint8_t buf[64];
-    memset(buf, 0, 64);
-    buf[0] = 0x04;
-    buf[1] = x;
-    buf[2] = y;
-
-    int i = 3;
-
-    while (*str) {
-        buf[i++] = *str;
-        str++;
-    }
-
-    buf[i] = '\0';
-
-    for (int i = 0; i<64; i++) {
-        printf("%d ", buf[i]);
-    }
-
-    hid_send_feature_report(handle, buf, sizeof(buf));
-}
-
 int main(int argc, char* argv[])
 {
-#ifdef NO_BOARD
-    //test_cube();
-    for (int i = 0; i < 128; i++) {
-        for (int j = 0; j < 64; j++) {
-            draw_pixel(i, j, 0);
-        }
-    }
-
-    //plot_line(0,0, 15,15);
-    draw_pixel(5,5,1);
-    for (int i = 0; i<SCREEN_HEIGHT*SCREEN_WIDTH/8; i++) {
-        //printf("%d", SCREEN_BUFFER[i]);
-        for (uint8_t b = 0; b<8; b++) {
-            if((SCREEN_BUFFER[i] >> b)  & 0x01) {
-                printf("#");
-            } else {
-                printf("-");
-            }
-        }
-    }
-
-    return 0;
-#endif
-
     // ?????????????? DLL
     WSADATA wsaData;
     WSAStartup( MAKEWORD(2, 2), &wsaData);
@@ -189,22 +127,7 @@ int main(int argc, char* argv[])
 
     if (hid_init())
         return -1;
-    /*
-    devs = hid_enumerate(0x0, 0x0);
-    cur_dev = devs;
-    while (cur_dev) {
-    printf("Device Found\n type: %04hx %04hx\n path: %s\n serial_number: %ls", cur_dev->vendor_id, cur_dev->product_id, cur_dev->path, cur_dev->serial_number);
-    printf("\n");
-    printf(" Mandufacturer: %ls\n", cur_dev->manufacturer_string);
-    printf(" Product: %ls\n", cur_dev->product_string);
-    printf(" Release: %hx\n", cur_dev->release_number);
-    printf(" Interface: %d\n", cur_dev->interface_number);
-    printf(" Usage (page): 0x%hx (0x%hx)\n", cur_dev->usage, cur_dev->usage_page);
-    printf("\n");
-    cur_dev = cur_dev->next;
-    }
-    hid_free_enumeration(devs);
-    */
+
     // Set up the command buffer.
     memset(buf,0x00,sizeof(buf));
     buf[0] = 0x01;
@@ -246,17 +169,6 @@ int main(int argc, char* argv[])
         }
     }
     update_screen(handle);
-    // ????????? ????????
-    /*
-    for (int i = 0; i < 30; i++) {
-    for (int j = 0; j < 30; j++) {
-    buf[0] = 0x04;
-    buf[1] = 15 + i; //
-    buf[2] = 15 + j;
-    buf[3] = 0x01;
-    res = hid_send_feature_report(handle,buf,4);
-    }
-    }*/
     // keys
     // Read a Feature Report from the device
     int exit = 0;
@@ -427,7 +339,7 @@ void rotate_point(float *x, float *y, float *z, float ax, float ay, float az) {
     // x axis
     rotatedX = *x;
     rotatedY = (*y * cosf(ax) - *z * sinf(ax));
-    rotatedZ = (*y * (float)sinf(ax) + *z * (float)cosf(ax));
+    rotatedZ = (*y * sinf(ax) + *z * cosf(ax));
     *x = rotatedX;
     *y = rotatedY;
     *z = rotatedZ;
@@ -537,11 +449,6 @@ void draw_cube(hid_device* handle)
         }
 
         for (int i=0; i<12; i++) {
-//            struct POINT from = rotated_points[CORNER_INDEXES[i][0]];
-//            struct POINT to = rotated_points[CORNER_INDEXES[i][1]];
-//            //printf("from: %d %d==to: %d %d\n", from.x, from.y, to.x, to.y);
-//            plot_line(from.x, from.y, to.x, to.y);
-
             plot_triangle(rotated_points[TRIANGLE_INDEXES[i][0]].x, rotated_points[TRIANGLE_INDEXES[i][0]].y,
                           rotated_points[TRIANGLE_INDEXES[i][1]].x, rotated_points[TRIANGLE_INDEXES[i][1]].y,
                           rotated_points[TRIANGLE_INDEXES[i][2]].x, rotated_points[TRIANGLE_INDEXES[i][2]].y);
