@@ -79,21 +79,21 @@ struct POINT rotated_points[8] = {};
 
 int main(int argc, char* argv[])
 {
-    // ?????????????? DLL
+    // Инициализируем DLL
     WSADATA wsaData;
     WSAStartup( MAKEWORD(2, 2), &wsaData);
-    // ??????? ?????
+    // Создаем сокет
     SOCKET servSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-    // ??????????? ?????
+    // Привязываем сокет
     struct sockaddr_in sockAddr;
-    memset (& sockAddr, 0, sizeof (sockAddr)); // ?????? ???? ??????????? 0
-    sockAddr.sin_family = PF_INET; // ???????????? IPv4-?????
-    sockAddr.sin_addr.s_addr = inet_addr ("0.0.0.0"); // ???????????? IP-?????
-    sockAddr.sin_port = htons (502); // ????
+    memset (& sockAddr, 0, sizeof (sockAddr)); // Каждый байт заполняется 0
+    sockAddr.sin_family = PF_INET; // Использовать IPv4-адрес
+    sockAddr.sin_addr.s_addr = inet_addr ("0.0.0.0"); // Определенный IP-адрес
+    sockAddr.sin_port = htons (502); // Порт
     bind(servSock, (SOCKADDR*)&sockAddr, sizeof(SOCKADDR));
-    // ?????? ? ????????? ???????????
+    // Входим в состояние мониторинга
     listen(servSock, 20);
-    // ????????? ??????????? ???????
+    // Получение клиентского запроса
     SOCKADDR clntAddr;
     int nSize;
     char *str = NULL;
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
     char *szBuffer[MAXBYTE] = {0};
     SOCKET clntSock;
 
-    // ????????? modbus ?????????
+    // Структура modbus протокола
     char packet_buff[8] = { 0x00, 0x00, // TransactionId - 2 bytes
                             0x00, 0x00, // Protocol - 2 bytes
                             0x00, 0x00, // MessageLength - 2 bytes
@@ -162,7 +162,7 @@ int main(int argc, char* argv[])
     res = hid_get_indexed_string(handle, 1, wstr, MAX_STR);
     printf("Indexed String 1: %ls\n", wstr);
 
-    // ??????? ??????
+    // Очистка экрана
     for (int i = 0; i < 128; i++) {
         for (int j = 0; j < 64; j++) {
             draw_pixel(i, j, 0);
@@ -177,32 +177,32 @@ int main(int argc, char* argv[])
     {
         nSize = sizeof(SOCKADDR);
         clntSock = accept(servSock, (SOCKADDR*)&clntAddr, &nSize);
-        // ????????? ?????? ?? ???????
+        // Получение пакета от клиента
         recv(clntSock, szBuffer, MAXBYTE, 0);
         char *buff = szBuffer;
-        char function_code = buff[7]; // ??? ???????
-        // ????????? ? ????? ???????
+        char function_code = buff[7]; // Код функции
+        // Сообщение с кодом функции
         printf("Request with code %d\n", function_code);
-        // ????? ???????
+        // Ответ сервера
         char answer[50];
-        // ????? ????????? ? ??????? ???????
+        // Длина сообщения с ответом сервера
         int message_length;
-        // ?????????? ???????
+        // Выполнение функций
         char server_password[] = "serverpass";
 
         switch (function_code) {
             case 0x42:
-                // ?????????? ????? ??????
+                // Вычисление длины байта
                 full_answer_length = 31 * sizeof(char); // 8 + 22 + 1
-                // ????????? ?????? ??? ?????
+                // Выделение памяти под ответ
                 str = malloc(full_answer_length);
-                // ??????????? ????????? modbus
+                // Копирование структуры modbus
                 memcpy(str, packet_buff, 8);
-                // ??? ???????
+                // Код функции
                 str[7] = (char)0x42;
                 // message_length + 2 (unitId + function_code)
                 str[5] = (char)(22 + 1 + 2);
-                // ?????? ????????? ????? ????????? modbus
+                // Запись сообщения после структуры modbus
                 strcpy(str + 8, "The server is running!");
                 break;
             case 0x43:
@@ -214,7 +214,7 @@ int main(int argc, char* argv[])
                 str[8] = buff[8];
                 str[9] = buff[9];
 
-                buf[0] = 0x02; // ??? ???????
+                buf[0] = 0x02; // Код функции
                 buf[1] = buf[3] = buf[5] = buff[8];
                 buf[2] = buf[4] = buf[6] = buff[9];
 
@@ -266,7 +266,7 @@ int main(int argc, char* argv[])
         }
 
         send(clntSock, str, full_answer_length, 0);
-        // ???????????? ?????????
+        // Освобождение указателя
         free(str);
         str = NULL;
         printf("Answer sent\n");
